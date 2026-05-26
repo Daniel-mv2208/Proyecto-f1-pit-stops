@@ -1,0 +1,70 @@
+Variable,Importancia
+constructor_name_Ferrari,0.09336853995056804
+delta_pit_stop,0.09183681125930868
+constructor_name_Red Bull,0.09136365803546219
+constructor_name_Mercedes,0.09003573012189
+year,0.08919422883974686
+mean_pit_stop,0.07125034071705896
+delta_abs,0.06936484564463369
+total_stops,0.038687823198239726
+constructor_name_Toro Rosso,0.03190302351438976
+constructor_name_Sauber,0.028417651861041678
+constructor_name_McLaren,0.02303675593636244
+delta_negativo,0.021635121583202275
+constructor_name_Haas F1 Team,0.021222206413632528
+constructor_name_Williams,0.01986806070605821
+constructor_name_Alfa Romeo,0.013691533814268509
+constructor_name_AlphaTauri,0.012323643418874151
+constructor_name_Lotus F1,0.010755143576183887
+constructor_name_Renault,0.010425766827187224
+constructor_name_Force India,0.009807506718544575
+constructor_name_Caterham,0.00883444930367359
+constructor_name_Aston Martin,0.008060947723255944
+constructor_name_Marussia,0.007523504178999048
+race_name_Bahrain Grand Prix,0.006092658451683821
+race_name_Australian Grand Prix,0.00595583460292699
+constructor_name_Alpine F1 Team,0.005919503003006406
+constructor_name_Manor Marussia,0.005457211190887308
+race_name_Hungarian Grand Prix,0.005431830748648626
+race_name_Malaysian Grand Prix,0.005092488587906792
+race_name_Austrian Grand Prix,0.004884975624851162
+race_name_Monaco Grand Prix,0.004638171860630435
+race_name_Spanish Grand Prix,0.004629867807481099
+race_name_British Grand Prix,0.0046288140318081475
+constructor_name_Racing Point,0.004620189762762884
+race_name_Chinese Grand Prix,0.004566814586482248
+race_name_Belgian Grand Prix,0.004451422297849859
+race_name_Japanese Grand Prix,0.004410601415578472
+race_name_Canadian Grand Prix,0.004265303739945609
+race_name_Italian Grand Prix,0.004076466376287486
+constructor_name_RB F1 Team,0.003987773765412229
+race_name_United States Grand Prix,0.003818987427664855
+race_name_Abu Dhabi Grand Prix,0.0037073110943906464
+race_name_Singapore Grand Prix,0.0035821270242547857
+race_name_Brazilian Grand Prix,0.0035399225707153916
+race_name_Russian Grand Prix,0.00331005934372275
+constructor_name_HRT,0.0029932271717791115
+race_name_Mexican Grand Prix,0.002424453508746345
+race_name_Emilia Romagna Grand Prix,0.0023394874387789484
+race_name_Azerbaijan Grand Prix,0.002270135890226348
+race_name_Saudi Arabian Grand Prix,0.0022123374961998048
+race_name_German Grand Prix,0.002101758084735873
+race_name_French Grand Prix,0.00198232715844996
+constructor_name_Lotus,0.0019418079037201252
+race_name_Turkish Grand Prix,0.0018608301548374824
+constructor_name_Virgin,0.0015402313566779068
+race_name_Korean Grand Prix,0.0014704619274527701
+race_name_European Grand Prix,0.0014036967255677767
+race_name_Mexico City Grand Prix,0.0013139516371919544
+race_name_Portuguese Grand Prix,0.0011575573204150409
+race_name_Indian Grand Prix,0.001136442723202296
+race_name_Qatar Grand Prix,0.0011312551659748535
+race_name_Dutch Grand Prix,0.0011226064392689398
+race_name_Las Vegas Grand Prix,0.0009339757158411608
+race_name_Styrian Grand Prix,0.0008797786416678457
+race_name_Miami Grand Prix,0.0008632889000502852
+race_name_São Paulo Grand Prix,0.0008366030229439284
+race_name_Tuscan Grand Prix,0.0007758412219822382
+race_name_Sakhir Grand Prix,0.0007754518024176833
+race_name_70th Anniversary Grand Prix,0.00044444801675760925
+race_name_Eifel Grand Prix,0.0004124159176338246
