@@ -1,0 +1,14 @@
+=== INFORME DE OPTIMIZACIÓN EMPRESARIAL: TEOREMA DE BAYES ===
+Variable de decisión: Mantenimiento de un Delta de Pit Stop Negativo (< 0.0s)
+----------------------------------------------------------------------
+
+1. PROBABILIDADES BASE:
+   - P(A)  | Probabilidad Base de ser Top 5:            48.1%
+   - P(B)  | Probabilidad de lograr un pit stop rápido: 53.1%
+   - P(B|A)| De los equipos Top 5, % que son rápidos:   70.0%
+
+2. APLICACIÓN DEL TEOREMA DE BAYES P(A|B):
+   - Probabilidad de ser Top 5 SI se opera con Delta negativo: 63.4%
+
+3. CONCLUSIÓN ESTRATÉGICA:
+   El incremento estratégico absoluto es del 15.3%.

@@ -5,48 +5,44 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-print("Iniciando análisis econométrico (Modelo Logit)...")
+print("Iniciando análisis econométrico (Modelo Logit con carpeta dedicada)...")
 
-# 1. Asegurar que la carpeta 'outputs' existe
-os.makedirs('outputs', exist_ok=True)
+# 1. Asegurar que la subcarpeta 'econometria' existe dentro de 'outputs'
+carpeta_salida = os.path.join('outputs', 'econometria')
+os.makedirs(carpeta_salida, exist_ok=True)
 
 # 2. Cargar el dataset maestro
 df = pd.read_csv('data/dataset_maestro_f1.csv')
 
-# 3. ESPECIFICACIÓN DEL MODELO LOGIT 
-# target_top5 es nuestra variable dependiente dicotómica
-# delta_pit_stop y total_stops son nuestras variables independientes
+# 3. ESPECIFICACIÓN DEL MODELO LOGIT (Estilo Gujarati)
 formula = 'target_top5 ~ delta_pit_stop + total_stops'
 modelo_logit = smf.logit(formula=formula, data=df).fit()
 
 # 4. EXPORTAR EL REPORTE ESTADÍSTICO TRADICIONAL
-# Generamos el resumen estadístico 
 resumen = modelo_logit.summary()
-ruta_reporte = os.path.join('outputs', 'reporte_econometria_logit.txt')
+ruta_reporte = os.path.join(carpeta_salida, 'reporte_econometria_logit.txt')
 
-with open(ruta_reporte, 'w') as f:
+with open(ruta_reporte, 'w', encoding='utf-8') as f:
     f.write("=== REPORTE ECONOMÉTRICO: REGRESIÓN LOGÍSTICA (F1) ===\n")
     f.write("Basado en la metodología de D. Gujarati (Modelos de respuesta cualitativa)\n\n")
     f.write(str(resumen))
     
-    # Añadimos el cálculo de Odds Ratios (Exponencial de los coeficientes)
+    # Añadimos el cálculo de Odds Ratios
     f.write("\n\n=== ODDS RATIOS (Razón de Probabilidades) ===\n")
     odds_ratios = np.exp(modelo_logit.params)
     f.write(str(odds_ratios))
 
 print(f"Reporte estadístico guardado en: {ruta_reporte}")
 
-# 5. VISUALIZACIONES
+# 5. VISUALIZACIONES EN LA CARPETA DEDICADA
 sns.set_theme(style="whitegrid")
 
-# --- Visual 1: La Curva Sigmoidea (Probabilidad vs Delta) ---
+# --- Visual 1: La Curva Sigmoidea ---
 plt.figure(figsize=(10, 6))
-# Fijamos total_stops en su mediana (ej. 2 paradas) para aislar el efecto del Delta
 mediana_stops = df['total_stops'].median()
 rango_delta = np.linspace(df['delta_pit_stop'].min(), df['delta_pit_stop'].max(), 300)
 datos_pred = pd.DataFrame({'delta_pit_stop': rango_delta, 'total_stops': mediana_stops})
 
-# Predecir probabilidades
 probabilidades = modelo_logit.predict(datos_pred)
 
 plt.plot(rango_delta, probabilidades, color='crimson', linewidth=3, label=f'Curva Logit (Paradas = {mediana_stops})')
@@ -57,20 +53,18 @@ plt.xlabel('Delta Pit Stop (Segundos respecto al promedio)', fontsize=12)
 plt.ylabel('Probabilidad Estimada P(Top 5 = 1)', fontsize=12)
 plt.legend()
 plt.tight_layout()
-ruta_grafico_1 = os.path.join('outputs', 'curva_probabilidad_logit.png')
+
+ruta_grafico_1 = os.path.join(carpeta_salida, 'curva_probabilidad_logit.png')
 plt.savefig(ruta_grafico_1, dpi=300)
 plt.close()
 
-# --- Visual 2: Forest Plot de Odds Ratios (Impacto Visual) ---
+# --- Visual 2: Forest Plot de Odds Ratios ---
 plt.figure(figsize=(8, 4))
-# Extraemos intervalos de confianza y calculamos exp()
 conf = modelo_logit.conf_int()
 conf['Odds Ratio'] = odds_ratios
 conf.columns = ['2.5%', '97.5%', 'Odds Ratio']
-# Omitimos el intercepto para el gráfico
 conf = conf.drop('Intercept')
 
-# Calculamos los errores para las barras
 errores_bajos = conf['Odds Ratio'] - np.exp(conf['2.5%'])
 errores_altos = np.exp(conf['97.5%']) - conf['Odds Ratio']
 
@@ -82,8 +76,9 @@ plt.title('Impacto de Variables (Odds Ratios)', fontsize=14, fontweight='bold')
 plt.xlabel('Multiplicador de Probabilidad (Odds Ratio)', fontsize=12)
 plt.legend()
 plt.tight_layout()
-ruta_grafico_2 = os.path.join('outputs', 'odds_ratios_impacto.png')
+
+ruta_grafico_2 = os.path.join(carpeta_salida, 'odds_ratios_impacto.png')
 plt.savefig(ruta_grafico_2, dpi=300)
 plt.close()
 
-print(f"Gráficos econométricos guardados en la carpeta 'outputs/'. ¡Proceso completado!")
+print(f"Gráficos econométricos guardados con éxito en: {carpeta_salida}")
