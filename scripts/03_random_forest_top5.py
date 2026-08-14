@@ -1,270 +1,177 @@
-# ============================================================
-# 04_random_forest_top5.py
-# Modelo de Machine Learning: Random Forest para predecir Top 5
-# ============================================================
-
+import os
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import joblib
-import os
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    roc_auc_score,
+    classification_report,
     confusion_matrix,
-    classification_report
-)
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-
-
-# ------------------------------------------------------------
-# 1. Crear carpetas de salida si no existen
-# ------------------------------------------------------------
-
-os.makedirs("outputs/graficos", exist_ok=True)
-os.makedirs("outputs/modelos", exist_ok=True)
-os.makedirs("outputs/metricas", exist_ok=True)
-
-
-# ------------------------------------------------------------
-# 2. Cargar dataset maestro
-# ------------------------------------------------------------
-
-df = pd.read_csv("data/dataset_maestro_f1.csv")
-
-print("Dataset cargado correctamente")
-print(df.head())
-print(df.columns)
-
-
-# ------------------------------------------------------------
-# 3. Crear variables adicionales
-# ------------------------------------------------------------
-
-df["delta_negativo"] = (df["delta_pit_stop"] < 0).astype(int)
-df["delta_abs"] = df["delta_pit_stop"].abs()
-
-
-# ------------------------------------------------------------
-# 4. Definir variable objetivo
-# ------------------------------------------------------------
-
-y = df["target_top5"]
-
-
-# ------------------------------------------------------------
-# 5. Definir variables predictoras
-# OJO: No usamos championship_standing ni season_points
-# para evitar fuga de información.
-# ------------------------------------------------------------
-
-X = df[
-    [
-        "year",
-        "race_name",
-        "constructor_name",
-        "mean_pit_stop",
-        "delta_pit_stop",
-        "delta_negativo",
-        "delta_abs",
-        "total_stops"
-    ]
-]
-
-
-# ------------------------------------------------------------
-# 6. Separar variables numéricas y categóricas
-# ------------------------------------------------------------
-
-numeric_features = [
-    "year",
-    "mean_pit_stop",
-    "delta_pit_stop",
-    "delta_negativo",
-    "delta_abs",
-    "total_stops"
-]
-
-categorical_features = [
-    "race_name",
-    "constructor_name"
-]
-
-
-# ------------------------------------------------------------
-# 7. Preprocesamiento
-# OneHotEncoder convierte textos en variables numéricas.
-# ------------------------------------------------------------
-
-preprocessor = ColumnTransformer(
-    transformers=[
-        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features),
-        ("num", "passthrough", numeric_features)
-    ]
+    roc_curve,
+    roc_auc_score,
+    accuracy_score
 )
 
+# -----------------------------------------------------------------------------
+# 1. CONFIGURACIÓN DE DIRECTORIOS Y ESTILO VISUAL
+# -----------------------------------------------------------------------------
+DATA_PATH = os.path.join("data", "dataset_maestro_f1.csv")
+OUTPUT_DIR = os.path.join("outputs", "machine_learning")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# ------------------------------------------------------------
-# 8. Crear modelo Random Forest
-# ------------------------------------------------------------
+sns.set_theme(style="darkgrid")
+plt.rcParams.update({'figure.max_open_warning': 0})
 
-rf_model = RandomForestClassifier(
-    n_estimators=300,
-    max_depth=None,
+# -----------------------------------------------------------------------------
+# 2. CARGA Y PREPARACIÓN DE DATOS (ENFOQUE OPERATIVO PURO)
+# -----------------------------------------------------------------------------
+if not os.path.exists(DATA_PATH):
+    raise FileNotFoundError(f"No se encontró el archivo de datos en: {DATA_PATH}")
+
+df = pd.read_csv(DATA_PATH)
+
+# Variables operativas para evitar fuga de información (Data Leakage)
+FEATURE_COLS = ["delta_pit_stop", "total_stops"]
+TARGET_COL = "target_top5"
+
+missing_cols = [col for col in FEATURE_COLS + [TARGET_COL] if col not in df.columns]
+if missing_cols:
+    raise KeyError(f"Faltan las siguientes columnas en el dataset: {missing_cols}")
+
+# Limpieza de nulos
+df_model = df.dropna(subset=FEATURE_COLS + [TARGET_COL]).copy()
+
+X = df_model[FEATURE_COLS]
+y = df_model[TARGET_COL]
+
+# -----------------------------------------------------------------------------
+# 3. DIVISIÓN DE DATOS (TRAIN / TEST)
+# -----------------------------------------------------------------------------
+X_train, X_test, y_train, y_test = train_test_split(
+    X, 
+    y, 
+    test_size=0.20, 
+    random_state=42, 
+    stratify=y
+)
+
+# -----------------------------------------------------------------------------
+# 4. ENTRENAMIENTO DEL MODELO RANDOM FOREST
+# -----------------------------------------------------------------------------
+rf_operativo = RandomForestClassifier(
+    n_estimators=100,
+    max_depth=6,
     random_state=42,
     class_weight="balanced"
 )
 
+rf_operativo.fit(X_train, y_train)
 
-# ------------------------------------------------------------
-# 9. Crear pipeline completo
-# ------------------------------------------------------------
+# Predicciones
+y_pred = rf_operativo.predict(X_test)
+y_proba = rf_operativo.predict_proba(X_test)[:, 1]
 
-pipeline = Pipeline(
-    steps=[
-        ("preprocessor", preprocessor),
-        ("model", rf_model)
-    ]
-)
+# -----------------------------------------------------------------------------
+# 5. GENERACIÓN Y GUARDADO DEL REPORTE EN ARCHIVO .TXT
+# -----------------------------------------------------------------------------
+acc = accuracy_score(y_test, y_pred)
+auc = roc_auc_score(y_test, y_proba)
+report_str = classification_report(y_test, y_pred, target_names=["Fuera (0)", "Top 5 (1)"])
 
+reporte_contenido = f"""=== MODELO RANDOM FOREST: ENFOQUE OPERATIVO ===
+Variables utilizadas: {', '.join(FEATURE_COLS)}
+------------------------------------------------------------
 
-# ------------------------------------------------------------
-# 10. Dividir datos en entrenamiento y prueba
-# ------------------------------------------------------------
+Exactitud Global (Accuracy): {acc * 100:.2f}%
+ROC-AUC Score: {auc:.4f}
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.25,
-    random_state=42,
-    stratify=y
-)
+MÉTRICAS DETALLADAS:
+{report_str}
+"""
 
+txt_report_path = os.path.join(OUTPUT_DIR, "reporte_random_forest_operativo.txt")
+with open(txt_report_path, "w", encoding="utf-8") as f:
+    f.write(reporte_contenido)
 
-# ------------------------------------------------------------
-# 11. Entrenar modelo
-# ------------------------------------------------------------
+print(f"[OK] Reporte de texto guardado en: {txt_report_path}")
 
-pipeline.fit(X_train, y_train)
+# -----------------------------------------------------------------------------
+# 6. GENERACIÓN DE ARTEFACTOS VISUALES
+# -----------------------------------------------------------------------------
 
-print("Modelo entrenado correctamente")
-
-
-# ------------------------------------------------------------
-# 12. Hacer predicciones
-# ------------------------------------------------------------
-
-y_pred = pipeline.predict(X_test)
-y_proba = pipeline.predict_proba(X_test)[:, 1]
-
-
-# ------------------------------------------------------------
-# 13. Calcular métricas
-# ------------------------------------------------------------
-
-accuracy = accuracy_score(y_test, y_pred)
-precision = precision_score(y_test, y_pred)
-recall = recall_score(y_test, y_pred)
-f1 = f1_score(y_test, y_pred)
-roc_auc = roc_auc_score(y_test, y_proba)
-
-metricas = pd.DataFrame({
-    "Metrica": ["Accuracy", "Precision", "Recall", "F1 Score", "ROC AUC"],
-    "Valor": [accuracy, precision, recall, f1, roc_auc]
-})
-
-print("\nMétricas del modelo:")
-print(metricas)
-
-metricas.to_csv("outputs/metricas/random_forest_metricas.csv", index=False)
-
-
-# ------------------------------------------------------------
-# 14. Reporte de clasificación
-# ------------------------------------------------------------
-
-reporte = classification_report(y_test, y_pred)
-
-print("\nReporte de clasificación:")
-print(reporte)
-
-with open("outputs/metricas/random_forest_reporte.txt", "w", encoding="utf-8") as f:
-    f.write(reporte)
-
-
-# ------------------------------------------------------------
-# 15. Matriz de confusión
-# ------------------------------------------------------------
-
+# A. Matriz de Confusión
+plt.figure(figsize=(6, 5))
 cm = confusion_matrix(y_test, y_pred)
-
-plt.figure(figsize=(6, 4))
 sns.heatmap(
-    cm,
-    annot=True,
-    fmt="d",
-    cmap="Blues",
-    xticklabels=["No Top 5", "Top 5"],
-    yticklabels=["No Top 5", "Top 5"]
+    cm, 
+    annot=True, 
+    fmt="d", 
+    cmap="Blues", 
+    xticklabels=["Fuera (0)", "Top 5 (1)"],
+    yticklabels=["Fuera (0)", "Top 5 (1)"]
 )
-plt.title("Matriz de Confusión - Random Forest")
-plt.xlabel("Predicción")
+plt.title("Matriz de Confusión - Random Forest Operativo", fontsize=12, fontweight="bold")
+plt.xlabel("Predicción del Modelo")
 plt.ylabel("Valor Real")
 plt.tight_layout()
-plt.savefig("outputs/graficos/matriz_confusion_random_forest.png")
+cm_path = os.path.join(OUTPUT_DIR, "matriz_confusion_operativo.png")
+plt.savefig(cm_path, dpi=300)
 plt.close()
+print(f"[OK] Matriz de confusión guardada en: {cm_path}")
 
-
-# ------------------------------------------------------------
-# 16. Importancia de variables
-# ------------------------------------------------------------
-
-model = pipeline.named_steps["model"]
-encoder = pipeline.named_steps["preprocessor"]
-
-feature_names_cat = encoder.named_transformers_["cat"].get_feature_names_out(categorical_features)
-feature_names = list(feature_names_cat) + numeric_features
-
-importances = model.feature_importances_
-
-importancia_df = pd.DataFrame({
-    "Variable": feature_names,
-    "Importancia": importances
-}).sort_values(by="Importancia", ascending=False)
-
-importancia_df.to_csv("outputs/metricas/importancia_variables_random_forest.csv", index=False)
-
-top_importancia = importancia_df.head(15)
-
-plt.figure(figsize=(10, 6))
-sns.barplot(
-    data=top_importancia,
-    x="Importancia",
-    y="Variable"
-)
-plt.title("Top 15 Variables más importantes - Random Forest")
-plt.xlabel("Importancia")
-plt.ylabel("Variable")
+# B. Curva ROC
+fpr, tpr, _ = roc_curve(y_test, y_proba)
+plt.figure(figsize=(7, 5))
+plt.plot(fpr, tpr, color="darkorange", lw=2, label=f"Random Forest (AUC = {auc:.3f})")
+plt.plot([0, 1], [0, 1], color="navy", lw=2, linestyle="--", label="Clasificador Aleatorio")
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel("Tasa de Falsos Positivos (1 - Especificidad)")
+plt.ylabel("Tasa de Verdaderos Positivos (Sensibilidad)")
+plt.title("Curva ROC - Enfoque Operativo de Pit Stops", fontsize=12, fontweight="bold")
+plt.legend(loc="lower right")
 plt.tight_layout()
-plt.savefig("outputs/graficos/importancia_variables_random_forest.png")
+roc_path = os.path.join(OUTPUT_DIR, "curva_roc_operativo.png")
+plt.savefig(roc_path, dpi=300)
 plt.close()
+print(f"[OK] Curva ROC guardada en: {roc_path}")
 
+# C. Importancia de Características con Etiquetas de Valor en las Barras
+importances = rf_operativo.feature_importances_
+df_importance = pd.DataFrame({
+    "Feature": FEATURE_COLS,
+    "Importance": importances
+}).sort_values(by="Importance", ascending=False)
 
-# ------------------------------------------------------------
-# 17. Guardar modelo entrenado
-# ------------------------------------------------------------
+plt.figure(figsize=(8, 4.5))
+ax = sns.barplot(data=df_importance, x="Importance", y="Feature", palette="viridis")
 
-joblib.dump(pipeline, "outputs/modelos/random_forest_top5.pkl")
+# Ampliar margen del eje X para que no se corten las etiquetas de texto
+max_importance = df_importance["Importance"].max()
+ax.set_xlim(0, max_importance * 1.25)
 
-print("\nProceso finalizado correctamente.")
-print("Modelo guardado en: outputs/modelos/random_forest_top5.pkl")
-print("Métricas guardadas en: outputs/metricas/")
-print("Gráficos guardados en: outputs/graficos/")
+# Añadir el valor numérico y porcentaje exacto al extremo de cada barra
+for p in ax.patches:
+    val = p.get_width()
+    ax.annotate(
+        f"{val:.3f} ({val * 100:.1f}%)",
+        (val, p.get_y() + p.get_height() / 2.0),
+        ha="left",
+        va="center",
+        xytext=(8, 0),
+        textcoords="offset points",
+        fontsize=10,
+        fontweight="bold"
+    )
+
+plt.title("Importancia de Variables (Feature Importance Operativo)", fontsize=12, fontweight="bold")
+plt.xlabel("Peso Predictivo Relativo")
+plt.ylabel("Variable Operativa")
+plt.tight_layout()
+
+imp_path = os.path.join(OUTPUT_DIR, "importancia_caracteristicas_operativo.png")
+plt.savefig(imp_path, dpi=300)
+plt.close()
+print(f"[OK] Gráfico de importancias guardado en: {imp_path}")
