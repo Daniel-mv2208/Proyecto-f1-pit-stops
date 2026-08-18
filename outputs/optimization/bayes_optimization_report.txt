@@ -1,0 +1,14 @@
+=== BUSINESS OPTIMIZATION REPORT: BAYES' THEOREM ===
+Decision variable: Maintaining a negative pit stop delta (< 0.0s)
+----------------------------------------------------------------------
+
+1. BASE PROBABILITIES:
+   - P(A)   | Baseline probability of finishing Top 5:            48.1%
+   - P(B)   | Probability of achieving a fast pit stop:           53.1%
+   - P(B|A) | Share of Top 5 teams that achieve fast pit stops:   70.0%
+
+2. BAYES' THEOREM APPLICATION P(A|B):
+   - Probability of Top 5 finish GIVEN negative delta:            63.4%
+
+3. STRATEGIC TAKEAWAY:
+   The absolute strategic lift is 15.3%.

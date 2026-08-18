@@ -2,58 +2,58 @@ import pandas as pd
 import numpy as np
 import os
 
-print("Iniciando Fase 1: Extracción, Limpieza de Outliers (Doble Filtro) y Agrupación...")
+print("Starting Phase 1: Extraction, outlier filtering (double filter), and aggregation...")
 
-# 1. Cargar datos
+# 1. Load data
 pit_stops = pd.read_csv('data/pit_stops.csv')
 results = pd.read_csv('data/results.csv')
 
-def limpiar_duracion(valor):
+def parse_duration(val):
     try:
-        return float(valor)
+        return float(val)
     except ValueError:
-        partes = str(valor).split(':')
-        if len(partes) == 2:
-            return (float(partes[0]) * 60) + float(partes[1])
+        parts = str(val).split(':')
+        if len(parts) == 2:
+            return (float(parts[0]) * 60) + float(parts[1])
         return np.nan
 
-pit_stops['duration_seg'] = pit_stops['duration'].apply(limpiar_duracion)
+pit_stops['duration_sec'] = pit_stops['duration'].apply(parse_duration)
 
 results_subset = results[['raceId', 'driverId', 'constructorId']]
 pit_stops_merged = pd.merge(pit_stops, results_subset, on=['raceId', 'driverId'], how='inner')
 
-# 2. CONTEO DE PARADAS (Antes de filtrar)
-# Contamos todas las paradas porque a nivel estratégico ocurrieron y hubo desgaste
-conteos = pit_stops_merged.groupby(['raceId', 'constructorId'])['stop'].count().reset_index()
-conteos.rename(columns={'stop': 'total_stops'}, inplace=True)
+# 2. Pit stop count (prior to filtering)
+# Count all stops to reflect strategic race occurrences and tire wear
+stop_counts = pit_stops_merged.groupby(['raceId', 'constructorId'])['stop'].count().reset_index()
+stop_counts.rename(columns={'stop': 'total_stops'}, inplace=True)
 
-# 3. DOBLE FILTRO DE OUTLIERS
-# FILTRO A: Límite Físico (Elimina banderas rojas y detenciones en garaje)
-pit_stops_pre_limpios = pit_stops_merged[pit_stops_merged['duration_seg'] <= 100]
+# 3. Two-stage outlier filtering
+# Filter A: Physical threshold (removes red flags and extended garage stops)
+pit_stops_pre_cleaned = pit_stops_merged[pit_stops_merged['duration_sec'] <= 100]
 
-# FILTRO B: Método RIC por Carrera (Elimina errores lentos estándar de los mecánicos)
-limites = pit_stops_pre_limpios.groupby('raceId')['duration_seg'].agg(
+# Filter B: IQR method per race (removes abnormal mechanical delay outliers)
+bounds = pit_stops_pre_cleaned.groupby('raceId')['duration_sec'].agg(
     Q1=lambda x: x.quantile(0.25),
     Q3=lambda x: x.quantile(0.75)
 ).reset_index()
 
-limites['IQR'] = limites['Q3'] - limites['Q1']
-limites['Upper_Bound'] = limites['Q3'] + 1.5 * limites['IQR']
+bounds['IQR'] = bounds['Q3'] - bounds['Q1']
+bounds['Upper_Bound'] = bounds['Q3'] + 1.5 * bounds['IQR']
 
-# Unimos y aplicamos el filtro estadístico
-pit_stops_pre_limpios = pd.merge(pit_stops_pre_limpios, limites[['raceId', 'Upper_Bound']], on='raceId', how='left')
-pit_stops_limpios = pit_stops_pre_limpios[pit_stops_pre_limpios['duration_seg'] <= pit_stops_pre_limpios['Upper_Bound']]
+# Merge bounds and apply the statistical threshold
+pit_stops_pre_cleaned = pd.merge(pit_stops_pre_cleaned, bounds[['raceId', 'Upper_Bound']], on='raceId', how='left')
+pit_stops_cleaned = pit_stops_pre_cleaned[pit_stops_pre_cleaned['duration_sec'] <= pit_stops_pre_cleaned['Upper_Bound']]
 
-# 4. CÁLCULO DE LA MEDIA (Solo con el rendimiento mecánico puro)
-medias = pit_stops_limpios.groupby(['raceId', 'constructorId'])['duration_seg'].mean().reset_index()
-medias.rename(columns={'duration_seg': 'mean_pit_stop'}, inplace=True)
+# 4. Mean calculation (focusing on pure pit crew performance)
+means = pit_stops_cleaned.groupby(['raceId', 'constructorId'])['duration_sec'].mean().reset_index()
+means.rename(columns={'duration_sec': 'mean_pit_stop'}, inplace=True)
 
-# 5. ENSAMBLAJE Y GUARDADO
-pit_stops_agg = pd.merge(medias, conteos, on=['raceId', 'constructorId'], how='inner')
+# 5. Merge and export
+pit_stops_agg = pd.merge(means, stop_counts, on=['raceId', 'constructorId'], how='inner')
 pit_stops_agg['mean_pit_stop'] = pit_stops_agg['mean_pit_stop'].round(3)
 
-ruta_salida = os.path.join('data', 'pit_stops_medias.csv')
-pit_stops_agg.to_csv(ruta_salida, index=False)
+output_path = os.path.join('data', 'pit_stops_means.csv')
+pit_stops_agg.to_csv(output_path, index=False)
 
-print(f"¡Proceso completado! Se ha aplicado el Límite Físico y el RIC.")
-print(f"Dataset guardado en: {ruta_salida}")
+print("Process complete: Physical limit and IQR filtering applied.")
+print(f"Dataset saved to: {output_path}")

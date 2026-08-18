@@ -1,13 +1,13 @@
-=== REPORTE ECONOMÉTRICO: REGRESIÓN LOGÍSTICA (F1) ===
-Basado en la metodología de D. Gujarati (Modelos de respuesta cualitativa)
+=== ECONOMETRIC REPORT: LOGISTIC REGRESSION (F1) ===
+Based on the qualitative response model framework (D. Gujarati)
 
                            Logit Regression Results                           
 ==============================================================================
 Dep. Variable:            target_top5   No. Observations:                 2923
 Model:                          Logit   Df Residuals:                     2920
 Method:                           MLE   Df Model:                            2
-Date:                Sat, 30 May 2026   Pseudo R-squ.:                 0.06959
-Time:                        16:57:39   Log-Likelihood:                -1883.1
+Date:                Tue, 18 Aug 2026   Pseudo R-squ.:                 0.06959
+Time:                        09:23:59   Log-Likelihood:                -1883.1
 converged:                       True   LL-Null:                       -2024.0
 Covariance Type:            nonrobust   LLR p-value:                 6.784e-62
 ==================================================================================
@@ -18,7 +18,7 @@ delta_pit_stop    -0.9324      0.063    -14.684      0.000      -1.057      -0.8
 total_stops       -0.0219      0.021     -1.023      0.306      -0.064       0.020
 ==================================================================================
 
-=== ODDS RATIOS (Razón de Probabilidades) ===
+=== ODDS RATIOS ===
 Intercept         0.991915
 delta_pit_stop    0.393625
 total_stops       0.978303

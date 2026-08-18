@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     classification_report,
@@ -14,15 +13,16 @@ from sklearn.metrics import (
     accuracy_score
 )
 
-# 1. Directory and plotting configuration
+# 1. Directory configuration and visual style
 DATA_PATH = os.path.join("data", "f1_master_dataset.csv")
-OUTPUT_DIR = os.path.join("outputs", "machine_learning")
+# Dedicated subfolder to keep temporal split artifacts separate from standard cross-validation
+OUTPUT_DIR = os.path.join("outputs", "machine_learning", "temporal_evaluation")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 sns.set_theme(style="darkgrid")
 plt.rcParams.update({'figure.max_open_warning': 0})
 
-# 2. Data loading and preparation (operational features only to prevent data leakage)
+# 2. Data loading and preparation
 if not os.path.exists(DATA_PATH):
     raise FileNotFoundError(f"Data file not found at: {DATA_PATH}")
 
@@ -30,27 +30,38 @@ df = pd.read_csv(DATA_PATH)
 
 FEATURE_COLS = ["delta_pit_stop", "total_stops"]
 TARGET_COL = "target_top5"
+TIME_COL = "year"
 
-missing_cols = [col for col in FEATURE_COLS + [TARGET_COL] if col not in df.columns]
+required_cols = FEATURE_COLS + [TARGET_COL, TIME_COL]
+missing_cols = [col for col in required_cols if col not in df.columns]
 if missing_cols:
     raise KeyError(f"Missing required columns in dataset: {missing_cols}")
 
-# Drop missing values
-df_model = df.dropna(subset=FEATURE_COLS + [TARGET_COL]).copy()
+df_model = df.dropna(subset=required_cols).copy()
 
-X = df_model[FEATURE_COLS]
-y = df_model[TARGET_COL]
+# 3. Temporal split (Train: 2011-2022 | Test: 2023-2024)
+train_mask = (df_model[TIME_COL] >= 2011) & (df_model[TIME_COL] <= 2022)
+test_mask = (df_model[TIME_COL] >= 2023) & (df_model[TIME_COL] <= 2024)
 
-# 3. Train / test split
-X_train, X_test, y_train, y_test = train_test_split(
-    X, 
-    y, 
-    test_size=0.25, 
-    random_state=42, 
-    stratify=y
-)
+df_train = df_model[train_mask]
+df_test = df_model[test_mask]
 
-# 4. Train Random Forest classifier
+X_train = df_train[FEATURE_COLS]
+y_train = df_train[TARGET_COL]
+
+X_test = df_test[FEATURE_COLS]
+y_test = df_test[TARGET_COL]
+
+print("=" * 65)
+print("OUT-OF-TIME VALIDATION SETUP")
+print("=" * 65)
+print(f"-> Output directory:          {OUTPUT_DIR}")
+print(f"-> Training set (2011-2022):   {len(df_train)} observations ({len(df_train)/len(df_model)*100:.1f}%)")
+print(f"-> Test set (2023-2024):       {len(df_test)} observations ({len(df_test)/len(df_model)*100:.1f}%)")
+print(f"-> Feature columns:           {FEATURE_COLS}")
+print(f"-> Target column:             {TARGET_COL}\n")
+
+# 4. Train Random Forest model
 rf_operational = RandomForestClassifier(
     n_estimators=100,
     max_depth=6,
@@ -60,23 +71,26 @@ rf_operational = RandomForestClassifier(
 
 rf_operational.fit(X_train, y_train)
 
-# Model predictions
+# Predictions on out-of-time test seasons (2023-2024)
 y_pred = rf_operational.predict(X_test)
 y_proba = rf_operational.predict_proba(X_test)[:, 1]
 
-# 5. Generate and export performance report (.txt)
+# 5. Generate and export performance metrics report (.txt)
 acc = accuracy_score(y_test, y_pred)
 auc = roc_auc_score(y_test, y_proba)
 report_str = classification_report(y_test, y_pred, target_names=["Outside Top 5 (0)", "Top 5 (1)"])
 
-report_content = f"""=== RANDOM FOREST MODEL: OPERATIONAL FOCUS ===
+report_content = f"""=== RANDOM FOREST MODEL: TEMPORAL OPERATIONAL EVALUATION ===
+Split: Training (2011-2022) | Test (2023-2024)
 Features used: {', '.join(FEATURE_COLS)}
 ------------------------------------------------------------
+Training Samples: {len(df_train)}
+Test Samples: {len(df_test)}
 
 Overall Accuracy: {acc * 100:.2f}%
 ROC-AUC Score: {auc:.4f}
 
-DETAILED METRICS:
+DETAILED METRICS (2023-2024 SEASONS):
 {report_str}
 """
 
@@ -88,7 +102,7 @@ print(f"[OK] Text report saved to: {txt_report_path}")
 
 # 6. Generate visual artifacts
 
-# A. Confusion Matrix
+# A. Confusion Matrix (Test 2023-2024)
 plt.figure(figsize=(6, 5))
 cm = confusion_matrix(y_test, y_pred)
 sns.heatmap(
@@ -99,7 +113,7 @@ sns.heatmap(
     xticklabels=["Outside Top 5 (0)", "Top 5 (1)"],
     yticklabels=["Outside Top 5 (0)", "Top 5 (1)"]
 )
-plt.title("Confusion Matrix - Operational Random Forest", fontsize=12, fontweight="bold")
+plt.title("Confusion Matrix (Test: 2023-2024)\nOperational Random Forest", fontsize=12, fontweight="bold")
 plt.xlabel("Predicted Label")
 plt.ylabel("True Label")
 plt.tight_layout()
@@ -108,7 +122,7 @@ plt.savefig(cm_path, dpi=300)
 plt.close()
 print(f"[OK] Confusion matrix saved to: {cm_path}")
 
-# B. ROC Curve
+# B. ROC Curve (Test 2023-2024)
 fpr, tpr, _ = roc_curve(y_test, y_proba)
 plt.figure(figsize=(7, 5))
 plt.plot(fpr, tpr, color="darkorange", lw=2, label=f"Random Forest (AUC = {auc:.3f})")
@@ -117,7 +131,7 @@ plt.xlim([0.0, 1.0])
 plt.ylim([0.0, 1.05])
 plt.xlabel("False Positive Rate (1 - Specificity)")
 plt.ylabel("True Positive Rate (Sensitivity)")
-plt.title("ROC Curve - Pit Stop Operational Model", fontsize=12, fontweight="bold")
+plt.title("ROC Curve - Test 2023-2024\n(Operational Focus)", fontsize=12, fontweight="bold")
 plt.legend(loc="lower right")
 plt.tight_layout()
 roc_path = os.path.join(OUTPUT_DIR, "operational_roc_curve.png")
@@ -125,7 +139,7 @@ plt.savefig(roc_path, dpi=300)
 plt.close()
 print(f"[OK] ROC curve saved to: {roc_path}")
 
-# C. Feature Importance with bar value labels
+# C. Feature Importance with bar labels
 importances = rf_operational.feature_importances_
 df_importance = pd.DataFrame({
     "Feature": FEATURE_COLS,
@@ -135,11 +149,9 @@ df_importance = pd.DataFrame({
 plt.figure(figsize=(8, 4.5))
 ax = sns.barplot(data=df_importance, x="Importance", y="Feature", palette="viridis")
 
-# Extend x-axis margin so value annotations are not clipped
 max_importance = df_importance["Importance"].max()
 ax.set_xlim(0, max_importance * 1.25)
 
-# Annotate each bar with numerical and percentage values
 for p in ax.patches:
     val = p.get_width()
     ax.annotate(
@@ -162,3 +174,7 @@ imp_path = os.path.join(OUTPUT_DIR, "operational_feature_importance.png")
 plt.savefig(imp_path, dpi=300)
 plt.close()
 print(f"[OK] Feature importance plot saved to: {imp_path}")
+
+print("\n" + "=" * 65)
+print("TEMPORAL EVALUATION COMPLETED")
+print("=" * 65)

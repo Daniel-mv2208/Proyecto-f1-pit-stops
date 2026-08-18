@@ -1,0 +1,20 @@
+=== RANDOM FOREST MODEL: TEMPORAL OPERATIONAL EVALUATION ===
+Split: Training (2011-2022) | Test (2023-2024)
+Features used: delta_pit_stop, total_stops
+------------------------------------------------------------
+Training Samples: 2476
+Test Samples: 447
+
+Overall Accuracy: 65.77%
+ROC-AUC Score: 0.7059
+
+DETAILED METRICS (2023-2024 SEASONS):
+                   precision    recall  f1-score   support
+
+Outside Top 5 (0)       0.67      0.63      0.65       222
+        Top 5 (1)       0.65      0.69      0.67       225
+
+         accuracy                           0.66       447
+        macro avg       0.66      0.66      0.66       447
+     weighted avg       0.66      0.66      0.66       447
+

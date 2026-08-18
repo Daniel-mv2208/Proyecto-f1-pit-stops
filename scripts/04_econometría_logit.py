@@ -5,80 +5,87 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-print("Iniciando análisis econométrico (Modelo Logit con carpeta dedicada)...")
+print("Starting econometric analysis (Logit model with dedicated directory)...")
 
-# 1. Asegurar que la subcarpeta 'econometria' existe dentro de 'outputs'
-carpeta_salida = os.path.join('outputs', 'econometria')
-os.makedirs(carpeta_salida, exist_ok=True)
+# 1. Ensure the 'econometrics' subfolder exists within 'outputs'
+output_dir = os.path.join('outputs', 'econometrics')
+os.makedirs(output_dir, exist_ok=True)
 
-# 2. Cargar el dataset maestro
-df = pd.read_csv('data/dataset_maestro_f1.csv')
+# 2. Load the master dataset
+df = pd.read_csv('data/f1_master_dataset.csv')
 
-# 3. ESPECIFICACIÓN DEL MODELO LOGIT 
+# 3. Logit model specification
 formula = 'target_top5 ~ delta_pit_stop + total_stops'
-modelo_logit = smf.logit(formula=formula, data=df).fit()
+logit_model = smf.logit(formula=formula, data=df).fit()
 
-# 4. EXPORTAR EL REPORTE ESTADÍSTICO TRADICIONAL
-resumen = modelo_logit.summary()
-ruta_reporte = os.path.join(carpeta_salida, 'reporte_econometria_logit.txt')
+# 4. Export standard statistical summary
+summary = logit_model.summary()
+report_path = os.path.join(output_dir, 'logit_econometrics_report.txt')
 
-with open(ruta_reporte, 'w', encoding='utf-8') as f:
-    f.write("=== REPORTE ECONOMÉTRICO: REGRESIÓN LOGÍSTICA (F1) ===\n")
-    f.write("Basado en la metodología de D. Gujarati (Modelos de respuesta cualitativa)\n\n")
-    f.write(str(resumen))
+with open(report_path, 'w', encoding='utf-8') as f:
+    f.write("=== ECONOMETRIC REPORT: LOGISTIC REGRESSION (F1) ===\n")
+    f.write("Based on the qualitative response model framework (D. Gujarati)\n\n")
+    f.write(str(summary))
     
-    # Añadimos el cálculo de Odds Ratios
-    f.write("\n\n=== ODDS RATIOS (Razón de Probabilidades) ===\n")
-    odds_ratios = np.exp(modelo_logit.params)
+    # Calculate and append odds ratios
+    f.write("\n\n=== ODDS RATIOS ===\n")
+    odds_ratios = np.exp(logit_model.params)
     f.write(str(odds_ratios))
 
-print(f"Reporte estadístico guardado en: {ruta_reporte}")
+print(f"Statistical report saved to: {report_path}")
 
-# 5. VISUALIZACIONES EN LA CARPETA DEDICADA
+# 5. Generate econometric visualizations
 sns.set_theme(style="whitegrid")
 
-# --- Visual 1: La Curva Sigmoidea ---
+# Probability sigmoid curve
 plt.figure(figsize=(10, 6))
-mediana_stops = df['total_stops'].median()
-rango_delta = np.linspace(df['delta_pit_stop'].min(), df['delta_pit_stop'].max(), 300)
-datos_pred = pd.DataFrame({'delta_pit_stop': rango_delta, 'total_stops': mediana_stops})
+median_stops = df['total_stops'].median()
+delta_range = np.linspace(df['delta_pit_stop'].min(), df['delta_pit_stop'].max(), 300)
+pred_data = pd.DataFrame({'delta_pit_stop': delta_range, 'total_stops': median_stops})
 
-probabilidades = modelo_logit.predict(datos_pred)
+probabilities = logit_model.predict(pred_data)
 
-plt.plot(rango_delta, probabilidades, color='crimson', linewidth=3, label=f'Curva Logit (Paradas = {mediana_stops})')
-plt.scatter(df['delta_pit_stop'], df['target_top5'], alpha=0.1, color='black', label='Observaciones reales')
-plt.axvline(x=0, color='gray', linestyle='--', label='Promedio de Carrera (Delta = 0)')
-plt.title('Probabilidad de entrar al Top 5 según el Delta en Boxes', fontsize=14, fontweight='bold')
-plt.xlabel('Delta Pit Stop (Segundos respecto al promedio)', fontsize=12)
-plt.ylabel('Probabilidad Estimada P(Top 5 = 1)', fontsize=12)
+plt.plot(delta_range, probabilities, color='crimson', linewidth=3, label=f'Logit Curve (Stops = {median_stops})')
+plt.scatter(df['delta_pit_stop'], df['target_top5'], alpha=0.1, color='black', label='Observed Data')
+plt.axvline(x=0, color='gray', linestyle='--', label='Race Baseline (Delta = 0)')
+plt.title('Top 5 Finish Probability by Pit Stop Delta', fontsize=14, fontweight='bold')
+plt.xlabel('Pit Stop Delta (Seconds Relative to Race Average)', fontsize=12)
+plt.ylabel('Estimated Probability P(Top 5 = 1)', fontsize=12)
 plt.legend()
 plt.tight_layout()
 
-ruta_grafico_1 = os.path.join(carpeta_salida, 'curva_probabilidad_logit.png')
-plt.savefig(ruta_grafico_1, dpi=300)
+plot_1_path = os.path.join(output_dir, 'logit_probability_curve.png')
+plt.savefig(plot_1_path, dpi=300)
 plt.close()
 
-# --- Visual 2: Forest Plot de Odds Ratios ---
+# Forest plot of Odds Ratios
 plt.figure(figsize=(8, 4))
-conf = modelo_logit.conf_int()
+conf = logit_model.conf_int()
 conf['Odds Ratio'] = odds_ratios
 conf.columns = ['2.5%', '97.5%', 'Odds Ratio']
 conf = conf.drop('Intercept')
 
-errores_bajos = conf['Odds Ratio'] - np.exp(conf['2.5%'])
-errores_altos = np.exp(conf['97.5%']) - conf['Odds Ratio']
+lower_errors = conf['Odds Ratio'] - np.exp(conf['2.5%'])
+upper_errors = np.exp(conf['97.5%']) - conf['Odds Ratio']
 
-plt.errorbar(x=conf['Odds Ratio'], y=conf.index, 
-             xerr=[errores_bajos, errores_altos], 
-             fmt='o', color='navy', markersize=10, capsize=5, linewidth=2)
-plt.axvline(x=1, color='red', linestyle='--', label='Sin efecto (OR = 1)')
-plt.title('Impacto de Variables (Odds Ratios)', fontsize=14, fontweight='bold')
-plt.xlabel('Multiplicador de Probabilidad (Odds Ratio)', fontsize=12)
+plt.errorbar(
+    x=conf['Odds Ratio'], 
+    y=conf.index, 
+    xerr=[lower_errors, upper_errors], 
+    fmt='o', 
+    color='navy', 
+    markersize=10, 
+    capsize=5, 
+    linewidth=2
+)
+plt.axvline(x=1, color='red', linestyle='--', label='No Effect (OR = 1)')
+plt.title('Feature Impact (Odds Ratios)', fontsize=14, fontweight='bold')
+plt.xlabel('Probability Multiplier (Odds Ratio)', fontsize=12)
 plt.legend()
 plt.tight_layout()
 
-ruta_grafico_2 = os.path.join(carpeta_salida, 'odds_ratios_impacto.png')
-plt.savefig(ruta_grafico_2, dpi=300)
+plot_2_path = os.path.join(output_dir, 'odds_ratios_impact.png')
+plt.savefig(plot_2_path, dpi=300)
 plt.close()
 
-print(f"Gráficos econométricos guardados con éxito en: {carpeta_salida}")
+print(f"Econometric plots saved successfully to: {output_dir}")
