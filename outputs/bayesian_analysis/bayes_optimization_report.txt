@@ -1,5 +1,5 @@
-=== BUSINESS OPTIMIZATION REPORT: BAYES' THEOREM ===
-Decision variable: Maintaining a negative pit stop delta (< 0.0s)
+=== Bayesian Probability Analysis: BAYES' THEOREM ===
+Condition analyzed: Maintaining a negative pit stop delta (< 0.0s)
 ----------------------------------------------------------------------
 
 1. BASE PROBABILITIES:
@@ -11,4 +11,4 @@ Decision variable: Maintaining a negative pit stop delta (< 0.0s)
    - Probability of Top 5 finish GIVEN negative delta:            63.4%
 
 3. STRATEGIC TAKEAWAY:
-   The absolute strategic lift is 15.3%.
+   The absolute difference in conditional probability is 15.3%.

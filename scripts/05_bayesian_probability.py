@@ -6,7 +6,7 @@ import os
 print("Starting business optimization analysis (Bayes' Theorem)...")
 
 # 1. Ensure the 'optimization' subfolder exists within 'outputs'
-output_dir = os.path.join('outputs', 'optimization')
+output_dir = os.path.join('outputs', 'bayesian_analysis')
 os.makedirs(output_dir, exist_ok=True)
 
 # 2. Load master dataset
@@ -29,8 +29,8 @@ strategic_lift = p_a_given_b - p_a
 # 6. Generate and export textual report
 report_path = os.path.join(output_dir, 'bayes_optimization_report.txt')
 with open(report_path, 'w', encoding='utf-8') as f:
-    f.write("=== BUSINESS OPTIMIZATION REPORT: BAYES' THEOREM ===\n")
-    f.write("Decision variable: Maintaining a negative pit stop delta (< 0.0s)\n")
+    f.write("=== Bayesian Probability Analysis: BAYES' THEOREM ===\n")
+    f.write("Condition analyzed: Maintaining a negative pit stop delta (< 0.0s)\n")
     f.write("-" * 70 + "\n\n")
     f.write("1. BASE PROBABILITIES:\n")
     f.write(f"   - P(A)   | Baseline probability of finishing Top 5:            {p_a:.1%}\n")
@@ -39,7 +39,7 @@ with open(report_path, 'w', encoding='utf-8') as f:
     f.write("2. BAYES' THEOREM APPLICATION P(A|B):\n")
     f.write(f"   - Probability of Top 5 finish GIVEN negative delta:            {p_a_given_b:.1%}\n\n")
     f.write("3. STRATEGIC TAKEAWAY:\n")
-    f.write(f"   The absolute strategic lift is {strategic_lift:.1%}.\n")
+    f.write(f"   The absolute difference in conditional probability is {strategic_lift:.1%}.\n")
 
 # 7. Visualization 1: Strategic impact comparison
 plt.figure(figsize=(8, 6))
@@ -75,7 +75,7 @@ plt.annotate(
     bbox=dict(boxstyle="round,pad=0.3", fc="#f1c40f", ec="black", lw=1)
 )
 
-plt.title('Strategic Impact of Pit Stop Efficiency', fontsize=14, fontweight='bold', pad=20)
+plt.title('Conditional Probability of Top 5 Championship Standing', fontsize=14, fontweight='bold', pad=20)
 plt.ylabel('Probability of Finishing in Top 5 (%)', fontsize=12)
 plt.ylim(0, 100)
 plt.tight_layout()
